@@ -1,0 +1,123 @@
+@import "tailwindcss";
+
+/* ===== Design tokens extraídos del mockup de Stitch ===== */
+@theme {
+  --color-primary: #ffffff;
+  --color-on-primary: #2f3131;
+  --color-secondary: #c8c6c5;
+  --color-background: #131313;
+  --color-surface: #131313;
+  --color-surface-container-lowest: #0e0e0e;
+  --color-surface-container: #1f1f1f;
+  --color-surface-container-low: #1b1b1b;
+  --color-surface-container-high: #2a2a2a;
+  --color-surface-container-highest: #353535;
+  --color-on-background: #e2e2e2;
+  --color-on-surface: #e2e2e2;
+  --color-on-surface-variant: #c4c7c8;
+  --color-outline: #8e9192;
+  --color-outline-variant: #444748;
+  --color-surface-tint: #c6c6c7;
+
+  --font-display: "Anton", sans-serif;
+  --font-label: "JetBrains Mono", monospace;
+  --font-body: "Manrope", sans-serif;
+
+  --radius-DEFAULT: 0.25rem;
+  --radius-lg: 0.5rem;
+  --radius-xl: 0.75rem;
+}
+
+body {
+  background-color: var(--color-surface-container-lowest);
+  color: var(--color-on-background);
+  font-family: var(--font-body);
+}
+
+/* Ghost button */
+.btn-ghost {
+  background: transparent;
+  border: 1px solid rgba(255, 255, 255, 0.2);
+  transition: all 0.3s ease;
+}
+.btn-ghost:hover {
+  border-color: rgba(255, 255, 255, 0.8);
+  box-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
+}
+
+/* Editorial link-style button */
+.btn-editorial {
+  position: relative;
+  background: transparent;
+  border: none;
+  color: #ffffff;
+  font-family: "JetBrains Mono", monospace;
+  font-size: 12px;
+  font-weight: 500;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+.btn-editorial::after {
+  content: "";
+  position: absolute;
+  width: 0;
+  height: 1px;
+  bottom: -4px;
+  left: 50%;
+  background-color: #ffffff;
+  transition: all 0.3s ease;
+  transform: translateX(-50%);
+}
+.btn-editorial:hover::after {
+  width: 100%;
+}
+
+/* Glass card */
+.glass-card {
+  background: rgba(255, 255, 255, 0.03);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+}
+
+/* Underline input (para formularios: login, registro, etc.) */
+.input-underline {
+  background: transparent;
+  border: none;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
+  color: #e2e2e2;
+  transition: all 0.3s ease;
+}
+.input-underline:focus {
+  outline: none;
+  border-bottom-color: #ffffff;
+  box-shadow: 0 1px 4px -2px rgba(255, 255, 255, 0.5);
+}
+
+.faded-divider {
+  height: 1px;
+  background: linear-gradient(
+    90deg,
+    rgba(255, 255, 255, 0) 0%,
+    rgba(255, 255, 255, 0.2) 50%,
+    rgba(255, 255, 255, 0) 100%
+  );
+}
+
+.no-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+.no-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.glossy-bg {
+  background: radial-gradient(circle at 50% -20%, #2a2a2a 0%, #000000 60%, #000000 100%);
+}
+
+.input-pill {
+  background: rgba(0, 0, 0, 0.5);
+}
+.input-pill:focus-within {
+  border-color: #ffffff;
+}
