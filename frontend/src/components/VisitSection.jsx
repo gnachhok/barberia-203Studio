@@ -5,7 +5,7 @@ export default function VisitSection() {
 
   return (
     <section
-      id="servicios"
+      id="visitanos"
       className="py-32 w-full max-w-7xl mx-auto px-6 md:px-16"
     >
       <div className="grid grid-cols-1 lg:grid-cols-2 gap-16 items-center">
