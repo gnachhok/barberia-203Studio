@@ -30,7 +30,7 @@ async function registro(req, res) {
         const rolCliente = await Rol.findOne({ where: { nombre: "cliente" } });
         await usuario.addRol(rolCliente);
 
-        const token = generarToken({ id: usuario.id, email: usuario.email });
+        const token = generarToken({ id: usuario.id, email: usuario.email, roles: ["cliente"] });
 
         res.status(201).json({
             usuario: {
