@@ -10,6 +10,10 @@ const servicioRoutes = require("./routes/servicioRoutes");
 const barberoRoutes = require("./routes/barberoRoutes");
 const disponibilidadRoutes = require("./routes/disponibilidadRoutes");
 const turnoRoutes = require("./routes/turnoRoutes");
+const pagoRoutes = require("./routes/pagoRoutes");
+const gastoRoutes = require("./routes/gastoRoutes");
+const notaRoutes = require("./routes/notaRoutes");
+const reporteRoutes = require("./routes/reporteRoutes");
 
 const app = express();
 
@@ -21,6 +25,10 @@ app.use("/servicios", servicioRoutes);
 app.use("/barberos", barberoRoutes);
 app.use("/disponibilidad", disponibilidadRoutes);
 app.use("/turnos", turnoRoutes);
+app.use("/pagos", pagoRoutes);
+app.use("/gastos", gastoRoutes);
+app.use("/", notaRoutes);
+app.use("/reportes", reporteRoutes);
 
 app.get("/", (req, res) => {
     res.json({ mensaje: "API de 203 studio funcionando" });
