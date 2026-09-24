@@ -1,22 +1,24 @@
-import Navbar from "../components/Navbar";
-import Hero from "../components/Hero";
-import WorksGrid from "../components/WorksGrid";
-import VisitSection from "../components/VisitSection";
-import Footer from "../components/Footer";
+import Navbar from "../components/layout/Navbar";
+import Footer from "../components/layout/Footer";
+import Marquee from "../components/ui/Marquee";
+import Hero from "../components/home/Hero";
+import SeccionBarberos from "../components/home/SeccionBarberos";
+import SeccionTrabajos from "../components/home/SeccionTrabajos";
+import SeccionContacto from "../components/home/SeccionContacto";
+import { ESTILOS } from "../data/local";
 
 export default function Home() {
   return (
     <>
       <Navbar />
-      <Hero />
-
-      <div className="w-full max-w-7xl mx-auto px-6 md:px-16">
-        <div className="faded-divider" />
-      </div>
-
-      <WorksGrid />
-      <VisitSection />
-      <Footer />
+      <main>
+        <Hero />
+        <Marquee items={ESTILOS} className="border-b border-line bg-paper text-ink" />
+        <SeccionBarberos />
+        <SeccionTrabajos />
+        <SeccionContacto />
+      </main>
+      <Footer grande />
     </>
   );
 }

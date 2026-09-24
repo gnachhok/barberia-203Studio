@@ -1,0 +1,53 @@
+/* Estilos del rollo de película. Van en su propio archivo porque son muy
+   específicos de este componente (fondos con SVG, capas, variable --x). */
+
+/* --x la actualiza el JS: es el desplazamiento del rollo en px.
+   Perforaciones, marcas y rayones la usan como background-position,
+   así se mueven junto con las fotos y no parece un fondo quieto. */
+.rollo {
+  --x: 0px;
+  position: relative; height: 540px; overflow: hidden;
+  touch-action: pan-y; cursor: grab; user-select: none; outline: none;
+  /* base de la película: brillo suave al centro + viñeta en los bordes */
+  background:
+    linear-gradient(90deg, rgb(0 0 0 / .55), transparent 12%, transparent 88%, rgb(0 0 0 / .55)),
+    linear-gradient(180deg, #121212 0%, #1f1e1c 18%, #232220 50%, #1f1e1c 82%, #121212 100%);
+}
+.rollo:active { cursor: grabbing; }
+.rollo:focus-visible { box-shadow: inset 0 0 0 2px var(--color-paper); }
+
+.rollo-cuadro { position: absolute; top: 50%; left: 0; width: 300px; will-change: transform; }
+
+.rollo-perf {
+  position: absolute; left: 0; right: 0; height: 16px; z-index: 30; pointer-events: none;
+  background-position: var(--x) 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='32' height='16'%3E%3Crect x='9' y='1' width='14' height='14' rx='3' fill='%230a0a0a' stroke='%23ffffff' stroke-opacity='.08'/%3E%3C/svg%3E");
+}
+.rollo-perf.arriba { top: 12px; }
+.rollo-perf.abajo { bottom: 12px; }
+
+.rollo-marcas {
+  position: absolute; left: 0; right: 0; height: 12px; z-index: 30; pointer-events: none; opacity: .55;
+  background-position: var(--x) 0;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='340' height='12'%3E%3Ctext x='0' y='10' font-family='monospace' font-size='9' letter-spacing='1.5' fill='%23f2f0eb'%3E203 STUDIO ▸ 400 ◂ SAFETY FILM%3C/text%3E%3C/svg%3E");
+}
+.rollo-marcas.arriba { top: 34px; }
+.rollo-marcas.abajo { bottom: 34px; background-position: calc(var(--x) + 170px) 0; }
+
+.rollo-grano {
+  position: absolute; inset: 0; z-index: 40; pointer-events: none; opacity: .22; mix-blend-mode: overlay;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='220' height='220'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.85' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+.rollo-rayas {
+  position: absolute; inset: 0; z-index: 40; pointer-events: none; opacity: .5;
+  background-position: var(--x) 0; background-size: 620px 100%;
+  background-image: linear-gradient(90deg, transparent 0 137px, rgb(255 255 255 / .05) 137px 138px, transparent 138px 401px, rgb(255 255 255 / .035) 401px 402px, transparent 402px);
+}
+
+.rollo-flecha { width: 52px; height: 52px; border: 2px solid var(--color-paper); font-size: 20px; transition: all .2s; }
+.rollo-flecha:hover { background: var(--color-paper); color: var(--color-ink); }
+
+@media (max-width: 800px) {
+  .rollo { height: 420px; }
+  .rollo-cuadro { width: 220px; }
+}

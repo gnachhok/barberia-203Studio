@@ -1,113 +1,81 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
-import AuthHeader from "../components/AuthHeader";
+import { Link, useSearchParams } from "react-router-dom";
+import AuthLayout from "../components/auth/AuthLayout";
+import Campo from "../components/auth/Campo";
+import BotonEnviar from "../components/auth/BotonEnviar";
+import { useAuth } from "../context/AuthContext";
+import { useDestinoPostLogin } from "../hooks/useDestinoPostLogin";
+import { mensajeDeError } from "../api/client";
+
+const emailValido = (v) => /^\S+@\S+\.\S+$/.test(v);
 
 export default function Login() {
-    const [showPassword, setShowPassword] = useState(false);
-    const [form, setForm] = useState({ email: "", password: "" });
+  const { login } = useAuth();
+  const irAlDestino = useDestinoPostLogin();
+  const [params] = useSearchParams();
 
-    const handleChange = (e) => {
-        setForm({ ...form, [e.target.name]: e.target.value });
-    };
+  const [form, setForm] = useState({ email: "", password: "" });
+  const [errores, setErrores] = useState({});
+  const [errorGeneral, setErrorGeneral] = useState("");
+  const [cargando, setCargando] = useState(false);
 
-    const handleSubmit = (e) => {
-        e.preventDefault();
-        // Acá va la llamada a POST /auth/login cuando armemos el backend
-        console.log("Login con:", form);
-    };
+  // Al escribir en un campo se borra su error
+  const cambiar = (e) => {
+    setForm({ ...form, [e.target.name]: e.target.value });
+    setErrores({ ...errores, [e.target.name]: "" });
+  };
 
-    return (
-        <div className="glossy-bg text-on-background min-h-screen flex items-center justify-center font-body relative overflow-hidden p-4 md:p-8">
-            <AuthHeader />
+  // Validación en el frontend = comodidad (feedback inmediato).
+  // La seguridad real está en el backend, que valida de nuevo.
+  function validar() {
+    const e = {};
+    if (!form.email.trim()) e.email = "Ingresá tu email";
+    else if (!emailValido(form.email.trim())) e.email = "Ese email no parece válido";
+    if (!form.password) e.password = "Ingresá tu contraseña";
+    setErrores(e);
+    return Object.keys(e).length === 0;
+  }
 
-            <main className="relative z-10 w-full max-w-md mx-auto flex flex-col items-center justify-center">
-                <div className="bg-[#0f0f0f] border border-white/10 rounded-[2rem] p-8 md:p-12 w-full shadow-[0_20px_50px_rgba(0,0,0,0.5)] relative z-10">
-                    <div className="mb-10 text-center">
-                        <h1 className="font-display text-3xl text-white tracking-wider uppercase">
-                            Bienvenido
-                        </h1>
-                        <p className="font-body text-gray-400 mt-2">
-                            ¿No tenés cuenta?{" "}
-                            <Link to="/registro" className="text-white hover:underline font-medium">
-                                Registrate
-                            </Link>
-                        </p>
-                    </div>
+  async function enviar(e) {
+    e.preventDefault();
+    setErrorGeneral("");
+    if (!validar()) return;
 
-                    <form onSubmit={handleSubmit} className="flex flex-col gap-6">
-                        <div className="flex flex-col gap-2">
-                            <label
-                                className="font-label text-xs text-gray-400 tracking-widest uppercase"
-                                htmlFor="email"
-                            >
-                                Email
-                            </label>
-                            <div className="input-pill rounded-full border border-gray-700 flex items-center px-4 py-3 transition-colors duration-300">
-                                <input
-                                    id="email"
-                                    name="email"
-                                    type="email"
-                                    required
-                                    value={form.email}
-                                    onChange={handleChange}
-                                    placeholder="example@gmail.com"
-                                    className="bg-transparent border-none outline-none w-full text-white placeholder-gray-600 font-body"
-                                />
-                            </div>
-                        </div>
+    setCargando(true);
+    try {
+      await login(form.email.trim(), form.password);
+      irAlDestino();
+    } catch (err) {
+      setErrorGeneral(
+        err.response?.status === 401
+          ? "Email o contraseña incorrectos. Revisalos e intentá de nuevo."
+          : mensajeDeError(err)
+      );
+      setCargando(false);
+    }
+  }
 
-                        <div className="flex flex-col gap-2">
-                            <label
-                                className="font-label text-xs text-gray-400 tracking-widest uppercase"
-                                htmlFor="password"
-                            >
-                                Contraseña
-                            </label>
-                            <div className="input-pill rounded-full border border-gray-700 flex items-center px-4 py-3 transition-colors duration-300">
-                                <input
-                                    id="password"
-                                    name="password"
-                                    type={showPassword ? "text" : "password"}
-                                    required
-                                    value={form.password}
-                                    onChange={handleChange}
-                                    placeholder="••••••••"
-                                    className="bg-transparent border-none outline-none w-full text-white placeholder-gray-600 font-body text-xl tracking-[0.2em]"
-                                />
-                                <span
-                                    onClick={() => setShowPassword(!showPassword)}
-                                    className="text-gray-500 ml-3 cursor-pointer hover:text-white transition-colors select-none"
-                                >
-                                    {showPassword ? "🙈" : "👁️"}
-                                </span>
-                            </div>
-                        </div>
+  const sufijo = params.get("next") ? `?next=${params.get("next")}` : "";
 
-                        <div className="flex justify-between items-center text-sm px-2">
-                            <label className="flex items-center gap-2 cursor-pointer group">
-                                <div className="w-4 h-4 rounded-full border border-gray-600 group-hover:border-white flex items-center justify-center transition-colors">
-                                    <div className="w-2 h-2 rounded-full bg-white opacity-0 group-hover:opacity-100 transition-opacity" />
-                                </div>
-                                <span className="text-gray-400 group-hover:text-white transition-colors">
-                                    Recordarme
-                                </span>
-                            </label>
-                            <a href="#" className="text-white hover:underline transition-colors font-medium">
-                                ¿Olvidaste tu contraseña?
-                            </a>
-                        </div>
+  return (
+    <AuthLayout>
+      <form onSubmit={enviar} noValidate className="entra">
+        <h1 className="display text-[52px] leading-[.9]">Volviste<span className="punto-oscuro">.</span></h1>
+        <p className="mb-7 mt-2.5 text-ink-mute">Ingresá y reservá tu próximo corte.</p>
 
-                        <div className="mt-4">
-                            <button
-                                type="submit"
-                                className="w-full bg-white text-black font-display text-lg tracking-widest py-3.5 rounded-full hover:bg-gray-200 transition-all duration-300 shadow-[0_0_20px_rgba(255,255,255,0.1)] hover:shadow-[0_0_30px_rgba(255,255,255,0.2)]"
-                            >
-                                Ingresar
-                            </button>
-                        </div>
-                    </form>
-                </div>
-            </main>
-        </div>
-    );
+        {errorGeneral && <p role="alert" className="mb-5 border-2 border-error px-3.5 py-3 text-sm text-error">{errorGeneral}</p>}
+
+        <Campo id="email" name="email" type="email" label="Email" autoComplete="email" placeholder="tu@email.com"
+          value={form.email} onChange={cambiar} error={errores.email} />
+        <Campo id="password" name="password" type="password" label="Contraseña" autoComplete="current-password"
+          value={form.password} onChange={cambiar} error={errores.password} />
+
+        <BotonEnviar cargando={cargando} textoCarga="Ingresando…">Ingresar</BotonEnviar>
+
+        <p className="mt-[18px] text-center text-sm text-ink-mute">
+          ¿Primera vez? <Link to={`/registro${sufijo}`} replace className="border-b text-ink">Sacá tu número</Link>
+        </p>
+      </form>
+    </AuthLayout>
+  );
 }

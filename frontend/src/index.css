@@ -1,123 +1,128 @@
 @import "tailwindcss";
 
-/* ===== Design tokens extraídos del mockup de Stitch ===== */
-@theme {
-  --color-primary: #ffffff;
-  --color-on-primary: #2f3131;
-  --color-secondary: #c8c6c5;
-  --color-background: #131313;
-  --color-surface: #131313;
-  --color-surface-container-lowest: #0e0e0e;
-  --color-surface-container: #1f1f1f;
-  --color-surface-container-low: #1b1b1b;
-  --color-surface-container-high: #2a2a2a;
-  --color-surface-container-highest: #353535;
-  --color-on-background: #e2e2e2;
-  --color-on-surface: #e2e2e2;
-  --color-on-surface-variant: #c4c7c8;
-  --color-outline: #8e9192;
-  --color-outline-variant: #444748;
-  --color-surface-tint: #c6c6c7;
+/* =========================================================
+   Tokens de diseño — dirección "Flyer de barrio"
+   Blanco y negro (identidad del local) + blanco hueso para que no sea digital puro.
+   Con @theme, Tailwind genera utilidades: bg-ink, text-paper, font-display, etc.
+   ========================================================= */
+/* "static": emite TODAS las variables aunque no se usen en utilidades,
+   porque también las leemos con var(...) desde CSS propio (rollo.css, .ficha, etc.) */
+@theme static {
+  --color-ink: #0a0a0a;         /* negro de fondo */
+  --color-paper: #f2f0eb;       /* blanco hueso */
+  --color-mute: #8a8a86;        /* gris para textos secundarios sobre negro */
+  --color-ink-mute: #6b6b67;    /* gris para textos secundarios sobre claro */
+  --color-line: rgb(242 240 235 / 0.18); /* líneas finas sobre negro */
+  --color-error: #b3261e;
 
   --font-display: "Anton", sans-serif;
-  --font-label: "JetBrains Mono", monospace;
-  --font-body: "Manrope", sans-serif;
-
-  --radius-DEFAULT: 0.25rem;
-  --radius-lg: 0.5rem;
-  --radius-xl: 0.75rem;
+  --font-body: "Inter Tight", sans-serif;
+  --font-mono: "JetBrains Mono", monospace;
 }
 
-body {
-  background-color: var(--color-surface-container-lowest);
-  color: var(--color-on-background);
-  font-family: var(--font-body);
+@layer base {
+  body {
+    background-color: var(--color-ink);
+    color: var(--color-paper);
+    font-family: var(--font-body);
+    overflow-x: hidden;
+  }
+  button { cursor: pointer; }
 }
 
-/* Ghost button */
-.btn-ghost {
-  background: transparent;
-  border: 1px solid rgba(255, 255, 255, 0.2);
-  transition: all 0.3s ease;
-}
-.btn-ghost:hover {
-  border-color: rgba(255, 255, 255, 0.8);
-  box-shadow: 0 0 4px rgba(255, 255, 255, 0.4);
+/* =========================================================
+   Piezas reutilizables. Van como clases (y no como utilidades sueltas)
+   porque se repiten en todo el sitio y así se cambian en un solo lugar.
+   ========================================================= */
+@layer components {
+  .wrap { width: 100%; max-width: 1280px; margin-inline: auto; padding-inline: 24px; }
+
+  .display { font-family: var(--font-display); text-transform: uppercase; line-height: .85; letter-spacing: -.01em; }
+  .label { font-family: var(--font-mono); font-size: 12px; letter-spacing: .12em; text-transform: uppercase; }
+
+  /* punto final con contorno: "SALÍS DISTINTO." */
+  .punto { color: transparent; -webkit-text-stroke: 2px currentColor; }
+  .punto-claro { color: transparent; -webkit-text-stroke: 2px var(--color-paper); }
+  .punto-oscuro { color: transparent; -webkit-text-stroke: 2px var(--color-ink); }
+
+  /* Botones rectangulares que se invierten */
+  .btn {
+    display: inline-flex; align-items: center; justify-content: center; gap: 10px;
+    padding: 18px 28px; border: 2px solid var(--color-paper);
+    font-family: var(--font-mono); font-size: 13px; letter-spacing: .1em; text-transform: uppercase;
+    transition: all .2s;
+  }
+  .btn-solid { background: var(--color-paper); color: var(--color-ink); }
+  .btn-solid:hover { background: transparent; color: var(--color-paper); transform: translate(-3px, -3px); box-shadow: 6px 6px 0 var(--color-paper); }
+  .btn-line:hover { background: var(--color-paper); color: var(--color-ink); }
+  .btn-dark { background: var(--color-ink); color: var(--color-paper); border-color: var(--color-ink); }
+  .btn-dark:hover:not(:disabled) { background: transparent; color: var(--color-ink); }
+  .btn:disabled { opacity: .6; cursor: progress; }
+
+  .navlink { color: var(--color-mute); padding-bottom: 4px; border-bottom: 1px solid transparent; transition: all .2s; }
+  .navlink:hover { color: var(--color-paper); border-color: var(--color-paper); }
+
+  /* Encabezado de sección numerado: "01 — Quiénes cortan" */
+  .tag { display: flex; gap: 16px; align-items: baseline; border-top: 1px solid var(--color-line); padding-top: 14px; margin-bottom: 40px; }
+
+  /* Fotos en B&N que se ponen a color con hover (en el contenedor .photo-box) */
+  .photo { filter: grayscale(1) contrast(1.25); transition: filter .5s; }
+  .photo-box:hover .photo { filter: grayscale(0) contrast(1.05); }
+
+  /* Grano de fotocopia encima del contenedor (necesita position: relative) */
+  .grain::after {
+    content: ""; position: absolute; inset: 0; pointer-events: none; opacity: .18; mix-blend-mode: overlay;
+    background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='200' height='200'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)'/%3E%3C/svg%3E");
+  }
+
+  /* Recuadro rayado para fotos que todavía no están */
+  .vacio {
+    width: 100%; height: 100%; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 12px; color: #555;
+    background: repeating-linear-gradient(135deg, #1c1c1c 0 14px, #222 14px 28px);
+  }
+
+  .sticker {
+    position: absolute; background: var(--color-paper); color: var(--color-ink); padding: 10px 14px; transform: rotate(-8deg);
+    font-family: var(--font-display); font-size: 22px; text-transform: uppercase; box-shadow: 4px 4px 0 var(--color-ink);
+  }
+
+  /* Ficha / ticket de papel con troquel.
+     La mask recorta dos semicírculos REALES (transparentes) a la altura del troquel;
+     --troquel es la distancia desde abajo. Pintar círculos encima solo funciona sobre fondo liso. */
+  .ficha {
+    --troquel: 72px;
+    background: var(--color-paper); color: var(--color-ink);
+    -webkit-mask: radial-gradient(circle at 0 calc(100% - var(--troquel)), transparent 12px, #000 12.5px) left / 51% 100% no-repeat,
+                  radial-gradient(circle at 100% calc(100% - var(--troquel)), transparent 12px, #000 12.5px) right / 51% 100% no-repeat;
+            mask: radial-gradient(circle at 0 calc(100% - var(--troquel)), transparent 12px, #000 12.5px) left / 51% 100% no-repeat,
+                  radial-gradient(circle at 100% calc(100% - var(--troquel)), transparent 12px, #000 12.5px) right / 51% 100% no-repeat;
+  }
+  .troquel { position: relative; height: 24px; }
+  .troquel::before { content: ""; position: absolute; left: 18px; right: 18px; top: 50%; border-top: 2px dashed rgb(10 10 10 / .25); }
+  .barcode {
+    height: 34px; flex: 1;
+    background: repeating-linear-gradient(90deg, var(--color-ink) 0 2px, transparent 2px 4px, var(--color-ink) 4px 7px, transparent 7px 9px, var(--color-ink) 9px 10px, transparent 10px 14px);
+  }
+
+  /* Avatar redondo del barbero */
+  .avatar {
+    width: 56px; height: 56px; border-radius: 50%; border: 2px solid var(--color-paper); flex-shrink: 0;
+    display: flex; align-items: center; justify-content: center; overflow: hidden;
+    background: repeating-linear-gradient(135deg, #1c1c1c 0 6px, #252525 6px 12px);
+    font-family: var(--font-display); font-size: 20px; color: var(--color-mute);
+  }
+  .avatar img { width: 100%; height: 100%; object-fit: cover; filter: grayscale(1); }
+  .avatar-chico { width: 24px; height: 24px; font-size: 10px; border-width: 1px; border-color: var(--color-ink); background: #e0ded8; color: var(--color-ink-mute); }
 }
 
-/* Editorial link-style button */
-.btn-editorial {
-  position: relative;
-  background: transparent;
-  border: none;
-  color: #ffffff;
-  font-family: "JetBrains Mono", monospace;
-  font-size: 12px;
-  font-weight: 500;
-  letter-spacing: 0.1em;
-  text-transform: uppercase;
-}
-.btn-editorial::after {
-  content: "";
-  position: absolute;
-  width: 0;
-  height: 1px;
-  bottom: -4px;
-  left: 50%;
-  background-color: #ffffff;
-  transition: all 0.3s ease;
-  transform: translateX(-50%);
-}
-.btn-editorial:hover::after {
-  width: 100%;
-}
+/* Cinta que corre (marquee): el contenido va duplicado y se desplaza -50% en loop */
+@keyframes marquee { to { transform: translateX(-50%); } }
+.marquee-track { display: flex; width: max-content; animation: marquee var(--duracion, 22s) linear infinite; }
 
-/* Glass card */
-.glass-card {
-  background: rgba(255, 255, 255, 0.03);
-  backdrop-filter: blur(20px);
-  border: 1px solid rgba(255, 255, 255, 0.1);
-}
+@keyframes entra { from { opacity: 0; transform: translateY(8px); } }
+.entra { animation: entra .3s ease; }
 
-/* Underline input (para formularios: login, registro, etc.) */
-.input-underline {
-  background: transparent;
-  border: none;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.2);
-  color: #e2e2e2;
-  transition: all 0.3s ease;
-}
-.input-underline:focus {
-  outline: none;
-  border-bottom-color: #ffffff;
-  box-shadow: 0 1px 4px -2px rgba(255, 255, 255, 0.5);
-}
-
-.faded-divider {
-  height: 1px;
-  background: linear-gradient(
-    90deg,
-    rgba(255, 255, 255, 0) 0%,
-    rgba(255, 255, 255, 0.2) 50%,
-    rgba(255, 255, 255, 0) 100%
-  );
-}
-
-.no-scrollbar::-webkit-scrollbar {
-  display: none;
-}
-.no-scrollbar {
-  -ms-overflow-style: none;
-  scrollbar-width: none;
-}
-
-.glossy-bg {
-  background: radial-gradient(circle at 50% -20%, #2a2a2a 0%, #000000 60%, #000000 100%);
-}
-
-.input-pill {
-  background: rgba(0, 0, 0, 0.5);
-}
-.input-pill:focus-within {
-  border-color: #ffffff;
+/* Si el usuario pidió menos movimiento en su sistema, lo respetamos */
+@media (prefers-reduced-motion: reduce) {
+  .marquee-track, .entra { animation: none; }
 }
