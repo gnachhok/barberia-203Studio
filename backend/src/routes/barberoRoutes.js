@@ -20,8 +20,13 @@ const {
     eliminar: eliminarBloqueo,
 } = require("../controllers/bloqueoController");
 
+const { listarPublico } = require("../controllers/barberoController");
+
 const authMiddleware = require("../middlewares/authMiddleware");
 const verificarRol = require("../middlewares/rolMiddleware");
+
+// --- Listado público (id, nombre, apellido) ---
+router.get("/", listarPublico);
 
 // --- Servicios del barbero ---
 router.get("/:id/servicios", listarServicios);

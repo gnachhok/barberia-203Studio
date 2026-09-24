@@ -1,10 +1,26 @@
-const { HorarioBarbero, BloqueoHorario, Turno, Servicio } = require("../models");
-const { Op } = require("sequelize");
-const { horaAMinutos, minutosAHora } = require("../utils/horarios");
+const { Servicio } = require("../models");
+const { buscarBarberosActivos } = require("./barberoController");
+const {
+    fechaLocal,
+    sumarDias,
+    cargarAgenda,
+    slotsDelDia,
+    slotsCombinados,
+} = require("../utils/agenda");
 
-const PASO_MINUTOS = 15;
-const MARGEN_MINUTOS_HOY = 30;
+const PASO_MINUTOS = 15;   // endpoint original: granularidad fina
+const PASO_RESERVA = 30;   // reserva online: los turnos arrancan cada 30 min
+const DIAS_VENTANA = 30;   // se puede reservar desde hoy hasta 29 días adelante
 
+// Resuelve qué barberos considerar: uno puntual, o todos los activos ("sin preferencia")
+async function resolverBarberos(barbero_id) {
+    if (barbero_id) return [Number(barbero_id)];
+    const barberos = await buscarBarberosActivos();
+    return barberos.map((b) => b.id);
+}
+
+// GET /disponibilidad?barbero_id&servicio_id&fecha
+// Endpoint original: devuelve solo los horarios libres como strings ["10:00", "10:15", ...]
 async function calcularDisponibilidad(req, res) {
     try {
         const { barbero_id, servicio_id, fecha } = req.query;
@@ -15,81 +31,88 @@ async function calcularDisponibilidad(req, res) {
             });
         }
 
-        // Necesitamos la duración del servicio para saber cuánto "ocupa" cada slot
         const servicio = await Servicio.findByPk(servicio_id);
         if (!servicio) {
             return res.status(404).json({ error: "Servicio no encontrado" });
         }
-        const duracion = servicio.duracion_minutos;
 
-        // PASO 1: horario base de ese día de la semana
-        const diaSemana = new Date(`${fecha}T00:00:00`).getDay();
+        const id = Number(barbero_id);
+        const agenda = await cargarAgenda([id], fecha, fecha);
+        const slots = slotsDelDia(agenda, id, fecha, servicio.duracion_minutos, PASO_MINUTOS) || [];
 
-        const horario = await HorarioBarbero.findOne({
-            where: { barbero_id, dia_semana: diaSemana },
-        });
-
-        if (!horario) {
-            return res.json([]); // el barbero no trabaja ese día, no hay nada que calcular
-        }
-
-        // PASO 2: bloqueos (vacaciones, día libre) que cubran esa fecha
-        const bloqueos = await BloqueoHorario.findAll({ where: { barbero_id } });
-
-        const fechaConsulta = new Date(`${fecha}T00:00:00`);
-        const hayBloqueoTotal = bloqueos.some((b) => {
-            const inicio = new Date(new Date(b.fecha_inicio).toDateString());
-            const fin = new Date(new Date(b.fecha_fin).toDateString());
-            return fechaConsulta >= inicio && fechaConsulta <= fin;
-        });
-
-        if (hayBloqueoTotal) {
-            return res.json([]);
-        }
-
-        // PASO 3: generar slots candidatos cada 15 min dentro del horario
-        const inicioMin = horaAMinutos(horario.hora_inicio);
-        const finMin = horaAMinutos(horario.hora_fin);
-
-        const candidatos = [];
-        for (let t = inicioMin; t + duracion <= finMin; t += PASO_MINUTOS) {
-            candidatos.push(t);
-        }
-
-        // PASO 4: descartar los que chocan con turnos ya existentes
-        const turnosExistentes = await Turno.findAll({
-            where: {
-                barbero_id,
-                fecha,
-                estado: { [Op.notIn]: ["cancelado", "ausente"] },
-            },
-        });
-
-        const libres = candidatos.filter((slotInicio) => {
-            const slotFin = slotInicio + duracion;
-            return !turnosExistentes.some((turno) => {
-                const turnoInicio = horaAMinutos(turno.hora_inicio);
-                const turnoFin = horaAMinutos(turno.hora_fin);
-                return slotInicio < turnoFin && slotFin > turnoInicio;
-            });
-        });
-
-        // PASO 5: si la fecha consultada es hoy, sacar los horarios ya pasados
-        const ahora = new Date();
-        const esHoy = fecha === ahora.toISOString().slice(0, 10);
-
-        const resultado = esHoy
-            ? libres.filter(
-                (slot) =>
-                    slot >= ahora.getHours() * 60 + ahora.getMinutes() + MARGEN_MINUTOS_HOY
-            )
-            : libres;
-
-        res.json(resultado.map(minutosAHora));
+        res.json(slots.filter((s) => s.libre).map((s) => s.hora));
     } catch (error) {
         console.error(error);
         res.status(500).json({ error: "Error al calcular disponibilidad" });
     }
 }
 
-module.exports = { calcularDisponibilidad };
+// GET /disponibilidad/dia?servicio_id&fecha[&barbero_id]
+// Para la pantalla de reserva: TODOS los horarios del día (libres y ocupados),
+// y en cada uno qué barberos lo tienen libre. Sin barbero_id = "sin preferencia".
+async function disponibilidadDia(req, res) {
+    try {
+        const { barbero_id, servicio_id, fecha } = req.query;
+
+        if (!servicio_id || !fecha) {
+            return res.status(400).json({ error: "Faltan parámetros: servicio_id, fecha" });
+        }
+
+        const servicio = await Servicio.findByPk(servicio_id);
+        if (!servicio) {
+            return res.status(404).json({ error: "Servicio no encontrado" });
+        }
+
+        const ids = await resolverBarberos(barbero_id);
+        const agenda = await cargarAgenda(ids, fecha, fecha);
+        const slots = slotsCombinados(agenda, ids, fecha, servicio.duracion_minutos, PASO_RESERVA);
+
+        res.json({ fecha, cerrado: slots === null, slots: slots || [] });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al calcular disponibilidad del día" });
+    }
+}
+
+// GET /disponibilidad/mes?servicio_id[&barbero_id]
+// Resumen de los próximos 30 días para pintar el calendario en UNA sola llamada:
+// { "2026-09-24": { estado: "libre", libres: 8 }, "2026-09-28": { estado: "cerrado", libres: 0 }, ... }
+async function disponibilidadMes(req, res) {
+    try {
+        const { barbero_id, servicio_id } = req.query;
+
+        if (!servicio_id) {
+            return res.status(400).json({ error: "Falta parámetro: servicio_id" });
+        }
+
+        const servicio = await Servicio.findByPk(servicio_id);
+        if (!servicio) {
+            return res.status(404).json({ error: "Servicio no encontrado" });
+        }
+
+        const desde = fechaLocal();
+        const hasta = sumarDias(desde, DIAS_VENTANA - 1);
+        const ids = await resolverBarberos(barbero_id);
+        const agenda = await cargarAgenda(ids, desde, hasta);
+
+        const resumen = {};
+        for (let i = 0; i < DIAS_VENTANA; i++) {
+            const fecha = sumarDias(desde, i);
+            const slots = slotsCombinados(agenda, ids, fecha, servicio.duracion_minutos, PASO_RESERVA);
+            const libres = slots ? slots.filter((s) => s.libre).length : 0;
+            // Hoy sin horarios porque ya pasaron cuenta como "cerrado", no "lleno"
+            const yaPaso = i === 0 && slots && libres === 0;
+            resumen[fecha] = {
+                estado: !slots || yaPaso ? "cerrado" : libres > 0 ? "libre" : "lleno",
+                libres,
+            };
+        }
+
+        res.json({ desde, hasta, dias: resumen });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al calcular disponibilidad del mes" });
+    }
+}
+
+module.exports = { calcularDisponibilidad, disponibilidadDia, disponibilidadMes };

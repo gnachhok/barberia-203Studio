@@ -4,7 +4,8 @@ require("dotenv").config();
 
 const { sequelize } = require("./models");
 const authRoutes = require("./routes/authRoutes");
-const seedRoles = require("./seeders/rolesSeed")
+const seedRoles = require("./seeders/rolesSeed");
+const seedServicios = require("./seeders/serviciosSeed");
 const usuarioRoutes = require("./routes/usuarioRoutes");
 const servicioRoutes = require("./routes/servicioRoutes");
 const barberoRoutes = require("./routes/barberoRoutes");
@@ -47,6 +48,7 @@ sequelize
         console.log("✅ Modelos sincronizados con la base de datos");
         return seedRoles();
     })
+    .then(() => seedServicios())
     .then(() => {
         app.listen(PORT, () => {
             console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);

@@ -1,6 +1,8 @@
 const { Turno, Servicio, Usuario, Pago } = require("../models");
 const { Op } = require("sequelize");
 const { horaAMinutos, minutosAHora } = require("../utils/horarios");
+const { cargarAgenda, estaLibre } = require("../utils/agenda");
+const { buscarBarberosActivos } = require("./barberoController");
 
 // Función interna reutilizable: chequea si un horario se superpone con turnos existentes
 async function haySuperposicion(barbero_id, fecha, hora_inicio, hora_fin, excluirTurnoId = null) {
@@ -28,20 +30,26 @@ async function haySuperposicion(barbero_id, fecha, hora_inicio, hora_fin, exclui
 // POST /turnos
 async function crear(req, res) {
     try {
-        const {
-            cliente_id,
-            cliente_nombre,
-            barbero_id,
-            servicio_id,
-            fecha,
-            hora_inicio,
-        } = req.body;
+        const { servicio_id, fecha, hora_inicio, notas } = req.body;
+        let { cliente_id, cliente_nombre, barbero_id } = req.body;
+
+        const esStaff = req.usuario.roles.some((r) => ["barbero", "admin"].includes(r));
+
+        // Un cliente SIEMPRE reserva a su nombre: el id sale del token, nunca del body.
+        // (Si no, cualquiera podría mandar otro cliente_id y reservar a nombre de otro.)
+        if (!esStaff) {
+            cliente_id = req.usuario.id;
+            cliente_nombre = null;
+        }
 
         if (!cliente_id && !cliente_nombre) {
             return res.status(400).json({ error: "Se requiere cliente_id o cliente_nombre" });
         }
-        if (!barbero_id || !servicio_id || !fecha || !hora_inicio) {
+        if (!servicio_id || !fecha || !hora_inicio) {
             return res.status(400).json({ error: "Faltan campos obligatorios" });
+        }
+        if (esStaff && !barbero_id) {
+            return res.status(400).json({ error: "Falta barbero_id" });
         }
 
         const servicio = await Servicio.findByPk(servicio_id);
@@ -52,10 +60,28 @@ async function crear(req, res) {
         const inicioMin = horaAMinutos(hora_inicio);
         const hora_fin = minutosAHora(inicioMin + servicio.duracion_minutos);
 
-        // Revalidación real, no confiamos en lo que mostró /disponibilidad antes
-        const ocupado = await haySuperposicion(barbero_id, fecha, hora_inicio, hora_fin);
-        if (ocupado) {
-            return res.status(409).json({ error: "Ese horario ya no está disponible" });
+        if (esStaff) {
+            // El barbero carga turnos a mano (incluso fuera de horario): solo chequeamos que no se pise
+            const ocupado = await haySuperposicion(barbero_id, fecha, hora_inicio, hora_fin);
+            if (ocupado) {
+                return res.status(409).json({ error: "Ese horario ya no está disponible" });
+            }
+        } else {
+            // Revalidación real contra la agenda completa (horario, bloqueos, turnos y hora pasada):
+            // no confiamos en lo que mostró /disponibilidad antes.
+            const candidatos = barbero_id
+                ? [Number(barbero_id)]
+                : (await buscarBarberosActivos()).map((b) => b.id); // "sin preferencia"
+            const agenda = await cargarAgenda(candidatos, fecha, fecha);
+            const libres = candidatos.filter((id) =>
+                estaLibre(agenda, id, fecha, hora_inicio, servicio.duracion_minutos)
+            );
+            if (libres.length === 0) {
+                return res.status(409).json({ error: "Ese horario ya no está disponible" });
+            }
+            // Sin preferencia: le asignamos el turno al que tenga menos turnos ese día (reparte el trabajo)
+            const turnosDelDia = (id) => agenda.turnos.filter((t) => t.barbero_id === id).length;
+            barbero_id = libres.sort((a, b) => turnosDelDia(a) - turnosDelDia(b))[0];
         }
 
         const turno = await Turno.create({
@@ -66,8 +92,9 @@ async function crear(req, res) {
             fecha,
             hora_inicio,
             hora_fin,
+            notas: notas || null,
             estado: "confirmado",
-            creado_por: req.usuario?.roles?.includes("barbero") ? "barbero" : "cliente",
+            creado_por: esStaff ? "barbero" : "cliente",
         });
 
         res.status(201).json(turno);

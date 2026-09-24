@@ -11,6 +11,12 @@ async function registro(req, res) {
             return res.status(400).json({ error: "Faltan campos obligatorios" });
         }
 
+        // El frontend ya lo valida, pero eso es solo comodidad: cualquiera puede
+        // llamar a la API directo (Bruno, curl) y saltearse el formulario.
+        if (password.length < 8) {
+            return res.status(400).json({ error: "La contraseña tiene que tener al menos 8 caracteres" });
+        }
+
         const existente = await Usuario.findOne({ where: { email } });
         if (existente) {
             return res.status(409).json({ error: "Ya existe un usuario con ese email" });
@@ -38,6 +44,7 @@ async function registro(req, res) {
                 nombre: usuario.nombre,
                 apellido: usuario.apellido,
                 email: usuario.email,
+                roles: ["cliente"],
             },
             token,
         });
