@@ -117,6 +117,7 @@ export default function Panel() {
               cierra={dia.data.cierra}
               esHoy={esHoy}
               proximoId={proximo?.id}
+              propia={barberoId === usuario.id}
               onElegirHueco={(h) => setFormHora(h)}
             />
 

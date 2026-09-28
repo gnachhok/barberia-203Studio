@@ -4,7 +4,7 @@ const ETIQUETA = { completado: "Hecho ✓", ausente: "No vino" };
 
 // La línea de tiempo del día: turnos + huecos libres, ordenados por hora.
 // Los huecos se pueden tocar para anotar a alguien que llegó sin turno.
-export default function LineaDelDia({ turnos, abre, cierra, esHoy, proximoId, onElegirHueco }) {
+export default function LineaDelDia({ turnos, abre, cierra, esHoy, proximoId, propia, onElegirHueco }) {
   const huecos = abre ? calcularHuecos(turnos, abre, cierra) : [];
   const items = [
     ...turnos.map((t) => ({ tipo: "turno", ini: aMin(t.hora_inicio), t })),
@@ -18,7 +18,7 @@ export default function LineaDelDia({ turnos, abre, cierra, esHoy, proximoId, on
   const lineaAlFinal = esHoy && indiceAhora === -1 && items.length > 0; // ya pasó todo el día
 
   if (items.length === 0) {
-    return <p className="border-t border-ink/10 px-4 py-8 text-center text-ink-mute">No trabajás este día.</p>;
+    return <p className="border-t border-ink/10 px-4 py-8 text-center text-ink-mute">{propia ? "No trabajás" : "No trabaja"} este día.</p>;
   }
 
   return (
