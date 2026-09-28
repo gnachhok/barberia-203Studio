@@ -105,4 +105,62 @@ async function eliminar(req, res) {
     }
 }
 
-module.exports = { listar, obtenerPorId, crear, actualizar, eliminar };
+// ---------- Perfil propio (cualquier usuario logueado) ----------
+// No hay :id en la URL: el id sale SIEMPRE del token, así nadie puede editar a otro.
+
+// GET /usuarios/me
+async function obtenerMiPerfil(req, res) {
+    try {
+        const usuario = await Usuario.findByPk(req.usuario.id, {
+            attributes: ["id", "nombre", "apellido", "email", "telefono"],
+        });
+        if (!usuario) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+        res.json(usuario);
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al obtener el perfil" });
+    }
+}
+
+// PUT /usuarios/me — nombre, apellido, teléfono y (opcional) contraseña.
+// El email no se cambia desde acá: es con lo que se inicia sesión y tiene que ser único.
+async function actualizarMiPerfil(req, res) {
+    try {
+        const usuario = await Usuario.findByPk(req.usuario.id);
+        if (!usuario) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+
+        const { nombre, apellido, telefono, password_actual, password_nueva } = req.body;
+        if (!nombre?.trim() || !apellido?.trim()) {
+            return res.status(400).json({ error: "Nombre y apellido son obligatorios" });
+        }
+
+        const cambios = { nombre: nombre.trim(), apellido: apellido.trim(), telefono: telefono?.trim() || null };
+
+        // Para cambiar la contraseña hay que confirmar la actual: si alguien agarra
+        // el celular con la sesión abierta, no puede cambiarla y dejarte afuera.
+        if (password_nueva) {
+            const actualOk = password_actual && (await bcrypt.compare(password_actual, usuario.password));
+            if (!actualOk) {
+                return res.status(400).json({ error: "La contraseña actual no es correcta" });
+            }
+            if (password_nueva.length < 8) {
+                return res.status(400).json({ error: "La contraseña nueva tiene que tener al menos 8 caracteres" });
+            }
+            cambios.password = await bcrypt.hash(password_nueva, 10);
+        }
+
+        await usuario.update(cambios);
+        res.json({
+            usuario: { id: usuario.id, nombre: usuario.nombre, apellido: usuario.apellido, email: usuario.email, telefono: usuario.telefono },
+        });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al actualizar el perfil" });
+    }
+}
+
+module.exports = { listar, obtenerPorId, crear, actualizar, eliminar, obtenerMiPerfil, actualizarMiPerfil };

@@ -39,6 +39,16 @@ export function AuthProvider({ children }) {
     return data.usuario;
   }
 
+  // Después de editar el perfil: actualiza los datos guardados (ej. el nombre del navbar)
+  // sin tocar el token.
+  function actualizarUsuario(cambios) {
+    setUsuario((actual) => {
+      const nuevo = { ...actual, ...cambios };
+      localStorage.setItem(USUARIO_KEY, JSON.stringify(nuevo));
+      return nuevo;
+    });
+  }
+
   function logout() {
     localStorage.removeItem(TOKEN_KEY);
     localStorage.removeItem(USUARIO_KEY);
@@ -46,7 +56,7 @@ export function AuthProvider({ children }) {
   }
 
   return (
-    <AuthContext.Provider value={{ usuario, login, registro, logout }}>
+    <AuthContext.Provider value={{ usuario, login, registro, logout, actualizarUsuario }}>
       {children}
     </AuthContext.Provider>
   );

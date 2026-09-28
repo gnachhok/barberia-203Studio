@@ -10,6 +10,12 @@ const SECCIONES = [
   { to: "/#contacto", nombre: "Contacto", activa: () => false },
 ];
 
+// Opciones del menú "Hola, nombre ▾" (y del menú del celular)
+const OPCIONES_CUENTA = [
+  { to: "/mis-reservas", nombre: "Mis reservas" },
+  { to: "/perfil", nombre: "Mi perfil" },
+];
+
 // Navbar común a todas las páginas.
 // - secciones=false en la Home: ahí cada sección ya tiene su botón y quedaba sobrecargado.
 // - mostrarReservar=false en la propia página de reserva (ya estás ahí).
@@ -85,8 +91,11 @@ export default function Navbar({ secciones = true, mostrarReservar = true }) {
           <div className="wrap label flex flex-wrap items-center gap-6 border-t border-line py-5 text-mute">
             {usuario ? (
               <>
-                <span>Hola, <span className="text-paper">{usuario.nombre}</span></span>
-                <button onClick={() => { cerrarMenu(); logout(); }} className="label border-b text-paper">Cerrar sesión</button>
+                <span className="basis-full">Hola, <span className="text-paper">{usuario.nombre}</span></span>
+                {OPCIONES_CUENTA.map((o) => (
+                  <Link key={o.to} to={o.to} onClick={cerrarMenu} className="text-paper">{o.nombre}</Link>
+                ))}
+                <button onClick={() => { cerrarMenu(); logout(); }} className="label border-b text-mute">Cerrar sesión</button>
               </>
             ) : (
               <>
@@ -132,7 +141,18 @@ function MenuUsuario({ nombre, onSalir }) {
         Hola, <span className="text-paper">{nombre}</span> ▾
       </button>
       {abierto && (
-        <div className="absolute left-1/2 top-full z-50 mt-3 min-w-[180px] -translate-x-1/2 border border-line bg-ink p-2">
+        <div className="absolute left-1/2 top-full z-50 mt-3 min-w-[200px] -translate-x-1/2 border border-line bg-ink p-2">
+          {OPCIONES_CUENTA.map((o) => (
+            <Link
+              key={o.to}
+              to={o.to}
+              onClick={() => setAbierto(false)}
+              className="label block px-3 py-3 text-paper hover:bg-paper hover:text-ink"
+            >
+              {o.nombre}
+            </Link>
+          ))}
+          <div className="my-1 border-t border-line" />
           <button
             onClick={() => { setAbierto(false); onSalir(); }}
             className="label block w-full px-3 py-3 text-left text-mute hover:bg-paper hover:text-ink"

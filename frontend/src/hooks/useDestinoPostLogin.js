@@ -3,7 +3,7 @@ import { useNavigate, useSearchParams } from "react-router-dom";
 // Después de ingresar/registrarse: si veníamos de algún lado (?next=reservar),
 // volvemos ahí; si no, a la Home. Solo se aceptan rutas internas conocidas,
 // para que nadie arme un link que te mande a otro sitio después del login.
-const DESTINOS = { reservar: "/reservar" };
+const DESTINOS = { reservar: "/reservar", "mis-reservas": "/mis-reservas", perfil: "/perfil" };
 
 export function useDestinoPostLogin() {
   const [params] = useSearchParams();
