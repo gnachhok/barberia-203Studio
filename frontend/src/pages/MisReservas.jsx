@@ -8,6 +8,10 @@ import { DIAS_LARGO, MESES, desdeIso, precio } from "../utils/fechas";
 
 // Momento en que empieza un turno, para saber si ya pasó
 const inicio = (t) => new Date(`${t.fecha}T${t.hora_inicio}`);
+
+// Política del local (la misma regla está en el backend, que es el que decide de verdad)
+const HORAS_MINIMAS_CANCELACION = 8;
+const sePuedeCancelar = (t) => (inicio(t) - new Date()) / 36e5 >= HORAS_MINIMAS_CANCELACION;
 const hhmm = (h) => h.slice(0, 5); // "15:00:00" → "15:00"
 
 // Cómo se muestra cada estado en el historial (en palabras simples, nada técnico)
@@ -59,7 +63,12 @@ export default function MisReservas() {
 
           {turnos.data && (
             <>
-              <h2 className="label mb-5 text-mute">Próximos turnos</h2>
+              <div className="mb-5 flex flex-wrap items-baseline justify-between gap-2">
+                <h2 className="label text-mute">Próximos turnos</h2>
+                {proximas.length > 0 && (
+                  <p className="text-[13px] text-mute">Podés cancelar hasta {HORAS_MINIMAS_CANCELACION} horas antes.</p>
+                )}
+              </div>
               {proximas.length === 0 ? (
                 // Estado vacío: una invitación con UNA acción clara, no un "no hay nada"
                 <div className="flex flex-wrap items-center justify-between gap-6 border border-dashed border-line p-8">
@@ -139,6 +148,12 @@ function TicketTurno({ turno, onCancelado }) {
         {error && <p role="alert" className="mb-2 text-[13px] text-error">{error}</p>}
         <div className="flex items-center justify-between gap-4">
           <span className="display text-[28px]">{turno.Servicio ? precio(turno.Servicio.precio) : ""}</span>
+          {/* Con menos de 8 hs no mostramos un botón que va a fallar: explicamos por qué */}
+          {!sePuedeCancelar(turno) ? (
+            <span className="label max-w-[150px] text-right text-[10px]! text-ink-mute">
+              Falta poco: para cancelar escribinos por Instagram
+            </span>
+          ) : (
           <button
             onClick={cancelar}
             // si toca en otro lado entre los dos toques, el botón se "desarma"
@@ -148,6 +163,7 @@ function TicketTurno({ turno, onCancelado }) {
           >
             {cancelando ? "Cancelando…" : confirmando ? "¿Seguro? Tocá de nuevo" : "Cancelar turno"}
           </button>
+          )}
         </div>
       </div>
     </article>

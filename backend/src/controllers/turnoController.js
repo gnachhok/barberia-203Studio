@@ -4,6 +4,9 @@ const { horaAMinutos, minutosAHora } = require("../utils/horarios");
 const { cargarAgenda, estaLibre } = require("../utils/agenda");
 const { buscarBarberosActivos } = require("./barberoController");
 
+// Hasta cuántas horas antes del turno puede cancelar un cliente (decisión del local)
+const HORAS_MINIMAS_CANCELACION = 8;
+
 // Función interna reutilizable: chequea si un horario se superpone con turnos existentes
 async function haySuperposicion(barbero_id, fecha, hora_inicio, hora_fin, excluirTurnoId = null) {
     const where = {
@@ -173,6 +176,16 @@ async function cancelar(req, res) {
 
         if (turno.estado !== "confirmado") {
             return res.status(400).json({ error: "Solo se pueden cancelar turnos confirmados" });
+        }
+
+        // Política del local: el cliente puede cancelar hasta 8 hs antes.
+        // Barberos y admin pueden siempre (ej: el barbero se enferma).
+        const esStaff = req.usuario.roles.some((r) => ["barbero", "admin"].includes(r));
+        const horasQueFaltan = (new Date(`${turno.fecha}T${turno.hora_inicio}`) - new Date()) / 36e5;
+        if (!esStaff && horasQueFaltan < HORAS_MINIMAS_CANCELACION) {
+            return res.status(400).json({
+                error: `Los turnos se pueden cancelar hasta ${HORAS_MINIMAS_CANCELACION} horas antes. Escribinos por Instagram.`,
+            });
         }
 
         await turno.update({ estado: "cancelado" });

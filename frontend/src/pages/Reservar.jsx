@@ -388,10 +388,12 @@ function Listo({ fecha, barbero }) {
         Nos vemos<br />el {DIAS_LARGO[d.getDay()]} {d.getDate()}<span className="punto-claro">.</span>
       </h2>
       <p className="max-w-[460px] leading-relaxed text-mute">
-        {barbero ? `Te atiende ${barbero.apodo}. ` : ""}Guardamos tu turno. Si no podés venir, avisá con tiempo así otro lo puede aprovechar.
+        {barbero ? `Te atiende ${barbero.apodo}. ` : ""}Guardamos tu turno. Si no podés venir, cancelalo desde
+        "Mis reservas" hasta 8 horas antes, así otro lo puede aprovechar.
       </p>
       <div className="mt-8 flex flex-wrap gap-3">
-        <Link to="/" className="btn btn-solid">Volver al inicio →</Link>
+        <Link to="/mis-reservas" className="btn btn-solid">Ver mis reservas →</Link>
+        <Link to="/" className="btn btn-line">Volver al inicio</Link>
       </div>
     </section>
   );
