@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { Link } from "react-router-dom";
+import { useSearchParams } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useApi } from "../hooks/useApi";
 import { esAdmin, tieneRol } from "../utils/roles";
@@ -7,17 +7,23 @@ import { DIAS_LARGO, iso, desdeIso, sumarDias, precio } from "../utils/fechas";
 import ProximoTurno from "../components/panel/ProximoTurno";
 import LineaDelDia from "../components/panel/LineaDelDia";
 import FormTurnoManual from "../components/panel/FormTurnoManual";
+import PanelEncabezado from "../components/panel/PanelEncabezado";
 
 // Agenda del día del barbero. Pensada para el celular, entre cliente y cliente:
 // funcional antes que estética. Fondo claro = "la planilla del mostrador".
 export default function Panel() {
-  const { usuario, logout } = useAuth();
+  const { usuario } = useAuth();
   const admin = esAdmin(usuario);
+  // Desde Números se puede llegar con ?fecha=2026-09-19&barbero=11 (al tocar una barra)
+  const [params] = useSearchParams();
 
-  const [fecha, setFecha] = useState(() => iso(new Date()));
+  const [fecha, setFecha] = useState(() => {
+    const deLaUrl = params.get("fecha");
+    return /^\d{4}-\d{2}-\d{2}$/.test(deLaUrl || "") ? deLaUrl : iso(new Date());
+  });
   // El admin puede mirar la agenda de cualquier barbero; el barbero, solo la suya
   const barberos = useApi(admin ? "/barberos" : null);
-  const [barberoElegido, setBarberoElegido] = useState(null);
+  const [barberoElegido, setBarberoElegido] = useState(() => Number(params.get("barbero")) || null);
   // Si además es barbero (los dueños tienen los dos roles), arranca en SU agenda;
   // un admin que no corta (ej. el desarrollador) arranca en el primer barbero.
   const agendaInicial = tieneRol(usuario, "barbero") ? usuario.id : barberos.data?.[0]?.id ?? null;
@@ -52,14 +58,7 @@ export default function Panel() {
   return (
     <div className="min-h-screen bg-paper text-ink">
       <div className="mx-auto max-w-[560px] pb-10">
-        {/* Encabezado simple: acá no hace falta el navbar del sitio */}
-        <header className="flex items-center justify-between border-b border-ink/10 px-4 py-3">
-          <span className="display text-xl">203 · Panel</span>
-          <div className="label flex gap-4 text-ink-mute">
-            <Link to="/" className="hover:text-ink">Ver sitio</Link>
-            <button onClick={logout} className="hover:text-ink">Salir</button>
-          </div>
-        </header>
+        <PanelEncabezado />
 
         {admin && barberos.data && (
           <nav className="flex border-b border-ink/10" aria-label="Barbero">
