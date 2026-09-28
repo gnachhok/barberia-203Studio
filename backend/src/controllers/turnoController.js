@@ -54,7 +54,9 @@ async function crear(req, res) {
         }
 
         const servicio = await Servicio.findByPk(servicio_id);
-        if (!servicio) {
+        // Un servicio desactivado no se muestra en la web, pero igual hay que frenarlo acá:
+        // alguien podría mandar su id directo a la API
+        if (!servicio || !servicio.activo) {
             return res.status(404).json({ error: "Servicio no encontrado" });
         }
 
