@@ -28,6 +28,15 @@
 .op .suave { color: var(--color-mute); }
 .op.sel .suave { color: var(--color-ink-mute); }
 .op.sel .avatar { border-color: var(--color-ink); }
+
+/* Primer toque: la tarjeta queda "armada". El contenido se desenfoca y aparece
+   encima el aviso de volver a tocar; el segundo toque confirma. */
+.op.marcado { border-color: var(--color-paper); transform: translateY(-3px); box-shadow: 6px 6px 0 var(--color-paper); }
+.op.marcado > :not(.op-confirmar) { filter: blur(3px); opacity: .45; transition: filter .2s, opacity .2s; }
+.op-confirmar {
+  position: absolute; inset: 0; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px;
+  text-align: center; padding: 16px; animation: entra .2s ease;
+}
 .op-idx {
   position: absolute; right: 14px; top: 6px; font-family: var(--font-display); font-size: 64px; line-height: 1;
   color: transparent; -webkit-text-stroke: 1px var(--color-line);

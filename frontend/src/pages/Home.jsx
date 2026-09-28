@@ -10,7 +10,8 @@ import { ESTILOS } from "../data/local";
 export default function Home() {
   return (
     <>
-      <Navbar />
+      {/* En la Home no van las secciones en el navbar: cada sección ya tiene su botón */}
+      <Navbar secciones={false} />
       <main>
         <Hero />
         <Marquee items={ESTILOS} className="border-b border-line bg-paper text-ink" />

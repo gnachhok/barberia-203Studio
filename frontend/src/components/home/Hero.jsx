@@ -16,7 +16,8 @@ export default function Hero() {
               <>○ Cerrado · abrimos {estado.cuando} a las {estado.abre} h</>
             )}
           </p>
-          <h1 className="display text-[clamp(72px,12vw,184px)]">
+          {/* pt: con line-height .85 la tilde de la Í sobresale de la caja y tapaba el estado de arriba */}
+          <h1 className="display pt-[.18em] text-[clamp(72px,12vw,184px)]">
             Salís<br />distinto<span className="punto-claro">.</span>
           </h1>
           <p className="mb-9 mt-7 max-w-[440px] text-[19px] leading-normal text-[#cfcdc8]">

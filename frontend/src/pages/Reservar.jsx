@@ -17,11 +17,22 @@ import { DIAS_LARGO, desdeIso, precio } from "../utils/fechas";
 // al volver está todo como estaba. (sessionStorage y no localStorage: se borra
 // al cerrar la pestaña, así una reserva a medio hacer no aparece días después.)
 const GUARDADO = "203-reserva";
-const INICIAL = { paso: 1, servicioId: null, barberoId: null, fecha: null, hora: null, notas: "" };
+// barberoSlug: barbero pedido por link (?barbero=nico) que todavía no sabemos qué id tiene
+// en el backend (se resuelve cuando llega GET /barberos).
+const INICIAL = { paso: 1, servicioId: null, barberoId: null, barberoSlug: null, fecha: null, hora: null, notas: "" };
 
 function leerGuardado() {
   try { return { ...INICIAL, ...JSON.parse(sessionStorage.getItem(GUARDADO)) }; }
   catch { return INICIAL; }
+}
+
+// Estado inicial: lo guardado, salvo que el link pida un barbero puntual.
+// En ese caso el link GANA: si venís de "Reservar con Nico", es Nico aunque en una
+// reserva anterior hubieras elegido a otro (y fecha/hora de esa reserva ya no sirven).
+function estadoInicial(slugDelLink) {
+  const guardado = leerGuardado();
+  if (!slugDelLink) return guardado;
+  return { ...guardado, barberoId: null, barberoSlug: slugDelLink, fecha: null, hora: null };
 }
 
 const PASOS = ["Servicio", "Barbero", "Día y hora", "Confirmar"];
@@ -32,11 +43,14 @@ export default function Reservar() {
   const [params] = useSearchParams();
 
   // Un solo objeto de estado con todo lo elegido: la pantalla se dibuja a partir de él
-  const [estado, setEstado] = useState(leerGuardado);
+  const [estado, setEstado] = useState(() => estadoInicial(params.get("barbero")));
   const [confirmado, setConfirmado] = useState(null); // turno creado
   const [enviando, setEnviando] = useState(false);
   const [error, setError] = useState("");
   const [aviso, setAviso] = useState("");
+  // Servicio "armado" con el primer toque (falta el segundo para confirmar).
+  // Es estado de la pantalla, no de la reserva: no se guarda en sessionStorage.
+  const [marcado, setMarcado] = useState(null);
 
   useEffect(() => {
     if (!confirmado) sessionStorage.setItem(GUARDADO, JSON.stringify(estado));
@@ -59,10 +73,11 @@ export default function Reservar() {
     };
   }), [barberosApi.data]);
 
-  // Si viene de "Reservar con Nico" (?barbero=nico) y todavía no eligió, lo preseleccionamos.
-  // Se deriva en cada render en vez de copiarlo al estado con un useEffect.
-  const idDesdeUrl = barberos.find((b) => b.slug === params.get("barbero"))?.id ?? null;
-  const barberoId = estado.barberoId ?? idDesdeUrl;
+  // Barbero pedido por link: su id se deduce en cada render cuando ya llegaron los barberos
+  // (derivarlo evita un useEffect que copie datos al estado).
+  const idDelLink = barberos.find((b) => b.slug === estado.barberoSlug)?.id ?? null;
+  const barberoId = estado.barberoId ?? idDelLink;
+  const hayBarbero = barberoId !== null || estado.barberoSlug !== null; // elegido o en camino
 
   const servicio = servicios.data?.find((s) => s.id === estado.servicioId) || null;
   const barbero = barberos.find((b) => b.id === barberoId) || null;
@@ -84,13 +99,16 @@ export default function Reservar() {
   function elegirServicio(id) {
     // Otro servicio = otra duración = otros horarios → se vuelve a elegir día y hora
     const cambia = id !== estado.servicioId;
-    actualizar({ servicioId: id, barberoId, ...(cambia && { fecha: null, hora: null }), paso: barberoId ? 3 : 2 });
+    // Si el barbero ya está elegido (o viene por link y está cargando) vamos directo a día y hora.
+    // Aunque los barberos no hayan llegado, guardamos paso 3: `paso` se limita con maxPaso,
+    // así que se muestra el 2 un instante y pasa solo al 3 cuando se resuelve el id.
+    actualizar({ servicioId: id, ...(cambia && { fecha: null, hora: null }), paso: hayBarbero ? 3 : 2 });
   }
 
   function elegirBarbero(id) {
     // Con otro barbero el horario elegido puede no estar libre → se vuelve a elegir
     const cambia = id !== barberoId;
-    actualizar({ barberoId: id, ...(cambia && { fecha: null, hora: null }), paso: 3 });
+    actualizar({ barberoId: id, barberoSlug: null, ...(cambia && { fecha: null, hora: null }), paso: 3 });
   }
 
   function mostrarAviso(texto) {
@@ -193,15 +211,35 @@ export default function Reservar() {
               <h2 className="display mb-6 text-[40px]">¿Qué te hacés?</h2>
               <Estado consulta={servicios} />
               <div className="grid grid-cols-[repeat(auto-fill,minmax(220px,1fr))] gap-3">
-                {servicios.data?.map((s, i) => (
-                  <button key={s.id} onClick={() => elegirServicio(s.id)} className={`op ${estado.servicioId === s.id ? "sel" : ""}`}>
-                    <span className="op-idx" aria-hidden="true">0{i + 1}</span>
-                    <span className="label suave">{s.duracion_minutos} min</span>
-                    <span className="display text-[30px]">{s.nombre}</span>
-                    {s.descripcion && <span className="suave text-sm">{s.descripcion}</span>}
-                    <span className="display mt-auto text-[26px]">{precio(s.precio)}</span>
-                  </button>
-                ))}
+                {servicios.data?.map((s, i) => {
+                  const esMarcado = marcado === s.id;
+                  const esElegido = estado.servicioId === s.id && !marcado;
+                  return (
+                    <button
+                      key={s.id}
+                      // 1er toque: marca · 2do toque sobre la misma: confirma y avanza.
+                      // Si ya era el elegido (volviste al paso 1), avanza directo.
+                      onClick={() => {
+                        if (esMarcado || esElegido) { setMarcado(null); elegirServicio(s.id); }
+                        else setMarcado(s.id);
+                      }}
+                      aria-pressed={esMarcado || esElegido}
+                      className={`op ${esElegido ? "sel" : ""} ${esMarcado ? "marcado" : ""}`}
+                    >
+                      <span className="op-idx" aria-hidden="true">0{i + 1}</span>
+                      <span className="label suave">{s.duracion_minutos} min</span>
+                      <span className="display text-[30px]">{s.nombre}</span>
+                      {s.descripcion && <span className="suave text-sm">{s.descripcion}</span>}
+                      <span className="display mt-auto text-[26px]">{precio(s.precio)}</span>
+                      {esMarcado && (
+                        <span className="op-confirmar" aria-live="polite">
+                          <span className="display text-[28px]">✓</span>
+                          <span className="label">Tocá de nuevo para confirmar</span>
+                        </span>
+                      )}
+                    </button>
+                  );
+                })}
               </div>
 
               <p className="label mb-3.5 mt-10 text-mute">Color</p>
