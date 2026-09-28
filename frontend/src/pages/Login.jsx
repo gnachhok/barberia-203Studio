@@ -43,8 +43,8 @@ export default function Login() {
 
     setCargando(true);
     try {
-      await login(form.email.trim(), form.password);
-      irAlDestino();
+      const usuario = await login(form.email.trim(), form.password);
+      irAlDestino(usuario); // barbero → su agenda · cliente → donde venía o la Home
     } catch (err) {
       setErrorGeneral(
         err.response?.status === 401

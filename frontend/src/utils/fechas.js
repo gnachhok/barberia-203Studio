@@ -12,6 +12,13 @@ export function iso(d) {
 
 export const desdeIso = (f) => new Date(`${f}T00:00:00`);
 
+// "2026-09-30" + 1 → "2026-10-01" (Date se encarga de los cambios de mes/año)
+export function sumarDias(fecha, dias) {
+  const d = desdeIso(fecha);
+  d.setDate(d.getDate() + dias);
+  return iso(d);
+}
+
 export const precio = (n) => "$" + Number(n).toLocaleString("es-AR", { maximumFractionDigits: 0 });
 
 // Estado del local según la hora actual:

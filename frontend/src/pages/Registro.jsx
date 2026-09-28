@@ -50,7 +50,7 @@ export default function Registro() {
         telefono: form.telefono.trim() || null,
         password: form.password,
       });
-      irAlDestino();
+      irAlDestino(); // quien se registra siempre es cliente
     } catch (err) {
       // 409 = el email ya existe → en vez de "Error", le damos una salida
       setErrorGeneral(err.response?.status === 409 ? "email-existe" : mensajeDeError(err));

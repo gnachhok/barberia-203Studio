@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState } from "react";
 import { Link, useLocation } from "react-router-dom";
 import { useAuth } from "../../context/AuthContext";
+import { esStaff } from "../../utils/roles";
 
 // Secciones del sitio. Las de la Home son anclas (/#nosotros): ScrollManager baja hasta ahí.
 const SECCIONES = [
@@ -10,8 +11,10 @@ const SECCIONES = [
   { to: "/#contacto", nombre: "Contacto", activa: () => false },
 ];
 
-// Opciones del menú "Hola, nombre ▾" (y del menú del celular)
-const OPCIONES_CUENTA = [
+// Opciones del menú "Hola, nombre ▾" (y del menú del celular).
+// "Mi agenda" solo le aparece a barberos y admin.
+const opcionesCuenta = (usuario) => [
+  ...(esStaff(usuario) ? [{ to: "/panel", nombre: "Mi agenda" }] : []),
   { to: "/mis-reservas", nombre: "Mis reservas" },
   { to: "/perfil", nombre: "Mi perfil" },
 ];
@@ -92,7 +95,7 @@ export default function Navbar({ secciones = true, mostrarReservar = true }) {
             {usuario ? (
               <>
                 <span className="basis-full">Hola, <span className="text-paper">{usuario.nombre}</span></span>
-                {OPCIONES_CUENTA.map((o) => (
+                {opcionesCuenta(usuario).map((o) => (
                   <Link key={o.to} to={o.to} onClick={cerrarMenu} className="text-paper">{o.nombre}</Link>
                 ))}
                 <button onClick={() => { cerrarMenu(); logout(); }} className="label border-b text-mute">Cerrar sesión</button>
@@ -120,6 +123,7 @@ function LinksCuenta() {
 }
 
 function MenuUsuario({ nombre, onSalir }) {
+  const { usuario } = useAuth();
   const [abierto, setAbierto] = useState(false);
   const ref = useRef(null);
 
@@ -142,7 +146,7 @@ function MenuUsuario({ nombre, onSalir }) {
       </button>
       {abierto && (
         <div className="absolute left-1/2 top-full z-50 mt-3 min-w-[200px] -translate-x-1/2 border border-line bg-ink p-2">
-          {OPCIONES_CUENTA.map((o) => (
+          {opcionesCuenta(usuario).map((o) => (
             <Link
               key={o.to}
               to={o.to}

@@ -8,6 +8,7 @@ import Barbero from "./pages/Barbero";
 import Reservar from "./pages/Reservar";
 import MisReservas from "./pages/MisReservas";
 import Perfil from "./pages/Perfil";
+import Panel from "./pages/Panel";
 import NoEncontrada from "./pages/NoEncontrada";
 import RutaPrivada from "./components/layout/RutaPrivada";
 
@@ -25,6 +26,8 @@ export default function App() {
         {/* Solo con sesión: sin usuario te manda al login y después vuelve acá */}
         <Route path="/mis-reservas" element={<RutaPrivada volverA="mis-reservas"><MisReservas /></RutaPrivada>} />
         <Route path="/perfil" element={<RutaPrivada volverA="perfil"><Perfil /></RutaPrivada>} />
+        {/* Solo barberos y admin: un cliente que escriba /panel vuelve a la Home */}
+        <Route path="/panel" element={<RutaPrivada volverA="panel" roles={["barbero", "admin"]}><Panel /></RutaPrivada>} />
         <Route path="*" element={<NoEncontrada />} />
       </Routes>
     </>

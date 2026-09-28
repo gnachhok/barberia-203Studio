@@ -20,7 +20,7 @@ const {
     eliminar: eliminarBloqueo,
 } = require("../controllers/bloqueoController");
 
-const { listarPublico } = require("../controllers/barberoController");
+const { listarPublico, agendaDelDia } = require("../controllers/barberoController");
 
 const authMiddleware = require("../middlewares/authMiddleware");
 const verificarRol = require("../middlewares/rolMiddleware");
@@ -28,6 +28,9 @@ const { soloSuAgenda } = require("../middlewares/duenioMiddleware");
 
 // --- Listado público (id, nombre, apellido) ---
 router.get("/", listarPublico);
+
+// --- Agenda del día para el panel (horario + huecos para cargar a mano) ---
+router.get("/:id/dia", authMiddleware, verificarRol(["admin", "barbero"]), soloSuAgenda, agendaDelDia);
 
 // --- Servicios del barbero ---
 router.get("/:id/servicios", listarServicios);

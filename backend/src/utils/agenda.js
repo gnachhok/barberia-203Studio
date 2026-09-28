@@ -40,7 +40,10 @@ async function cargarAgenda(barberoIds, desde, hasta) {
 
 // Arma la "foto" de un día de un barbero: horario, turnos ocupados y desde qué
 // minuto se puede reservar. Devuelve null si ese día no trabaja (sin horario o bloqueado).
-function diaDelBarbero(agenda, barberoId, fecha) {
+// margenHoy: cuántos minutos desde "ahora" se dejan pasar antes de ofrecer un horario hoy.
+// Online son 30 (no reservar algo que arranca ya); en el local puede ser negativo
+// (el cliente está en la puerta: se lo puede anotar en el bloque que ya empezó).
+function diaDelBarbero(agenda, barberoId, fecha, margenHoy = MARGEN_MINUTOS_HOY) {
     const diaSemana = new Date(`${fecha}T00:00:00`).getDay();
 
     // PASO 1: horario base de ese día de la semana
@@ -67,7 +70,7 @@ function diaDelBarbero(agenda, barberoId, fecha) {
     // PASO 4: si es hoy, no ofrecer horarios que ya pasaron
     const ahora = new Date();
     const minimo = fecha === fechaLocal(ahora)
-        ? ahora.getHours() * 60 + ahora.getMinutes() + MARGEN_MINUTOS_HOY
+        ? ahora.getHours() * 60 + ahora.getMinutes() + margenHoy
         : 0;
 
     return {
@@ -87,8 +90,8 @@ function entra(dia, t, duracion) {
 // Calcula los horarios de UN barbero en UNA fecha, usando la agenda ya cargada.
 // Devuelve null si ese día no trabaja, o una lista de { hora, libre } con los
 // inicios posibles cada `paso` minutos.
-function slotsDelDia(agenda, barberoId, fecha, duracion, paso) {
-    const dia = diaDelBarbero(agenda, barberoId, fecha);
+function slotsDelDia(agenda, barberoId, fecha, duracion, paso, margenHoy) {
+    const dia = diaDelBarbero(agenda, barberoId, fecha, margenHoy);
     if (!dia) return null;
 
     const slots = [];
