@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useAuth } from "../context/AuthContext";
 import { useApi } from "../hooks/useApi";
-import { esAdmin } from "../utils/roles";
+import { esAdmin, tieneRol } from "../utils/roles";
 import { DIAS_LARGO, iso, desdeIso, sumarDias, precio } from "../utils/fechas";
 import ProximoTurno from "../components/panel/ProximoTurno";
 import LineaDelDia from "../components/panel/LineaDelDia";
@@ -18,7 +18,10 @@ export default function Panel() {
   // El admin puede mirar la agenda de cualquier barbero; el barbero, solo la suya
   const barberos = useApi(admin ? "/barberos" : null);
   const [barberoElegido, setBarberoElegido] = useState(null);
-  const barberoId = admin ? (barberoElegido ?? barberos.data?.[0]?.id ?? null) : usuario.id;
+  // Si además es barbero (los dueños tienen los dos roles), arranca en SU agenda;
+  // un admin que no corta (ej. el desarrollador) arranca en el primer barbero.
+  const agendaInicial = tieneRol(usuario, "barbero") ? usuario.id : barberos.data?.[0]?.id ?? null;
+  const barberoId = admin ? (barberoElegido ?? agendaInicial) : usuario.id;
 
   // null = formulario cerrado · "" = abierto sin hora sugerida · "14:00" = abierto desde un hueco
   const [formHora, setFormHora] = useState(null);

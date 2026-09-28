@@ -90,6 +90,39 @@ async function actualizar(req, res) {
     }
 }
 
+// PUT /usuarios/:id/roles (admin) — reemplaza los roles: { roles: ["barbero", "admin"] }
+// Ojo: los roles viajan en el token, así que el usuario los ve recién al volver a iniciar sesión.
+async function actualizarRoles(req, res) {
+    try {
+        const { roles } = req.body;
+        if (!Array.isArray(roles) || roles.length === 0) {
+            return res.status(400).json({ error: "Mandá al menos un rol" });
+        }
+
+        const usuario = await Usuario.findByPk(req.params.id);
+        if (!usuario) {
+            return res.status(404).json({ error: "Usuario no encontrado" });
+        }
+
+        // Un admin no puede sacarse el admin a sí mismo: si es el único, nadie podría devolvérselo
+        if (usuario.id === req.usuario.id && !roles.includes("admin")) {
+            return res.status(400).json({ error: "No podés quitarte el rol de admin a vos mismo" });
+        }
+
+        const rolesEncontrados = await Rol.findAll({ where: { nombre: roles } });
+        if (rolesEncontrados.length !== new Set(roles).size) {
+            return res.status(400).json({ error: "Algún rol no existe" });
+        }
+
+        // setRols (lo genera Sequelize por el belongsToMany) borra los de antes y deja solo estos
+        await usuario.setRols(rolesEncontrados);
+        res.json({ mensaje: "Roles actualizados", roles: rolesEncontrados.map((r) => r.nombre) });
+    } catch (error) {
+        console.error(error);
+        res.status(500).json({ error: "Error al actualizar los roles" });
+    }
+}
+
 async function eliminar(req, res) {
     try {
         const usuario = await Usuario.findByPk(req.params.id);
@@ -163,4 +196,4 @@ async function actualizarMiPerfil(req, res) {
     }
 }
 
-module.exports = { listar, obtenerPorId, crear, actualizar, eliminar, obtenerMiPerfil, actualizarMiPerfil };
+module.exports = { listar, obtenerPorId, crear, actualizar, actualizarRoles, eliminar, obtenerMiPerfil, actualizarMiPerfil };

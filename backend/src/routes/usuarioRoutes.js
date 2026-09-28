@@ -6,6 +6,7 @@ const {
     obtenerPorId,
     crear,
     actualizar,
+    actualizarRoles,
     eliminar,
     obtenerMiPerfil,
     actualizarMiPerfil,
@@ -25,6 +26,7 @@ router.get("/", authMiddleware, verificarRol(["admin"]), listar);
 router.get("/:id", authMiddleware, verificarRol(["admin"]), obtenerPorId);
 router.post("/", authMiddleware, verificarRol(["admin"]), crear);
 router.put("/:id", authMiddleware, verificarRol(["admin"]), actualizar);
+router.put("/:id/roles", authMiddleware, verificarRol(["admin"]), actualizarRoles);
 router.delete("/:id", authMiddleware, verificarRol(["admin"]), eliminar);
 
 module.exports = router;
