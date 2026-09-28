@@ -24,24 +24,25 @@ const { listarPublico } = require("../controllers/barberoController");
 
 const authMiddleware = require("../middlewares/authMiddleware");
 const verificarRol = require("../middlewares/rolMiddleware");
+const { soloSuAgenda } = require("../middlewares/duenioMiddleware");
 
 // --- Listado público (id, nombre, apellido) ---
 router.get("/", listarPublico);
 
 // --- Servicios del barbero ---
 router.get("/:id/servicios", listarServicios);
-router.post("/:id/servicios", authMiddleware, verificarRol(["admin", "barbero"]), asociar);
-router.delete("/:id/servicios/:servicioId", authMiddleware, verificarRol(["admin", "barbero"]), desasociar);
+router.post("/:id/servicios", authMiddleware, verificarRol(["admin", "barbero"]), soloSuAgenda, asociar);
+router.delete("/:id/servicios/:servicioId", authMiddleware, verificarRol(["admin", "barbero"]), soloSuAgenda, desasociar);
 
 // --- Horarios del barbero ---
 router.get("/:id/horarios", listarHorarios);
-router.post("/:id/horarios", authMiddleware, verificarRol(["admin", "barbero"]), crearHorario);
-router.put("/:id/horarios/:horarioId", authMiddleware, verificarRol(["admin", "barbero"]), actualizarHorario);
-router.delete("/:id/horarios/:horarioId", authMiddleware, verificarRol(["admin", "barbero"]), eliminarHorario);
+router.post("/:id/horarios", authMiddleware, verificarRol(["admin", "barbero"]), soloSuAgenda, crearHorario);
+router.put("/:id/horarios/:horarioId", authMiddleware, verificarRol(["admin", "barbero"]), soloSuAgenda, actualizarHorario);
+router.delete("/:id/horarios/:horarioId", authMiddleware, verificarRol(["admin", "barbero"]), soloSuAgenda, eliminarHorario);
 
 // --- Bloqueos del barbero ---
 router.get("/:id/bloqueos", listarBloqueos);
-router.post("/:id/bloqueos", authMiddleware, verificarRol(["admin", "barbero"]), crearBloqueo);
-router.delete("/:id/bloqueos/:bloqueoId", authMiddleware, verificarRol(["admin", "barbero"]), eliminarBloqueo);
+router.post("/:id/bloqueos", authMiddleware, verificarRol(["admin", "barbero"]), soloSuAgenda, crearBloqueo);
+router.delete("/:id/bloqueos/:bloqueoId", authMiddleware, verificarRol(["admin", "barbero"]), soloSuAgenda, eliminarBloqueo);
 
 module.exports = router;

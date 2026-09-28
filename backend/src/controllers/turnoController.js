@@ -35,8 +35,6 @@ async function crear(req, res) {
 
         const esStaff = req.usuario.roles.some((r) => ["barbero", "admin"].includes(r));
 
-        // Un cliente SIEMPRE reserva a su nombre: el id sale del token, nunca del body.
-        // (Si no, cualquiera podría mandar otro cliente_id y reservar a nombre de otro.)
         if (!esStaff) {
             cliente_id = req.usuario.id;
             cliente_nombre = null;
@@ -61,14 +59,12 @@ async function crear(req, res) {
         const hora_fin = minutosAHora(inicioMin + servicio.duracion_minutos);
 
         if (esStaff) {
-            // El barbero carga turnos a mano (incluso fuera de horario): solo chequeamos que no se pise
             const ocupado = await haySuperposicion(barbero_id, fecha, hora_inicio, hora_fin);
             if (ocupado) {
                 return res.status(409).json({ error: "Ese horario ya no está disponible" });
             }
         } else {
-            // Revalidación real contra la agenda completa (horario, bloqueos, turnos y hora pasada):
-            // no confiamos en lo que mostró /disponibilidad antes.
+
             const candidatos = barbero_id
                 ? [Number(barbero_id)]
                 : (await buscarBarberosActivos()).map((b) => b.id); // "sin preferencia"
@@ -104,7 +100,6 @@ async function crear(req, res) {
     }
 }
 
-// GET /turnos — cliente ve los suyos, barbero ve los suyos, admin ve todos
 async function listar(req, res) {
     try {
         const { fecha, estado, barbero_id } = req.query;
@@ -139,11 +134,9 @@ async function listar(req, res) {
     }
 }
 
-// PUT /turnos/:id — reprogramar
 async function reprogramar(req, res) {
     try {
-        const turno = await Turno.findByPk(req.params.id);
-        if (!turno) return res.status(404).json({ error: "Turno no encontrado" });
+        const turno = req.turno;
 
         if (turno.estado !== "confirmado") {
             return res.status(400).json({ error: "Solo se pueden reprogramar turnos confirmados" });
@@ -176,8 +169,7 @@ async function reprogramar(req, res) {
 // PATCH /turnos/:id/cancelar
 async function cancelar(req, res) {
     try {
-        const turno = await Turno.findByPk(req.params.id);
-        if (!turno) return res.status(404).json({ error: "Turno no encontrado" });
+        const turno = req.turno;
 
         if (turno.estado !== "confirmado") {
             return res.status(400).json({ error: "Solo se pueden cancelar turnos confirmados" });
@@ -194,8 +186,7 @@ async function cancelar(req, res) {
 // PATCH /turnos/:id/completar — dispara la creación del Pago
 async function completar(req, res) {
     try {
-        const turno = await Turno.findByPk(req.params.id);
-        if (!turno) return res.status(404).json({ error: "Turno no encontrado" });
+        const turno = req.turno
 
         if (turno.estado !== "confirmado") {
             return res.status(400).json({ error: "Solo se pueden completar turnos confirmados" });
@@ -224,8 +215,7 @@ async function completar(req, res) {
 // PATCH /turnos/:id/ausente
 async function ausente(req, res) {
     try {
-        const turno = await Turno.findByPk(req.params.id);
-        if (!turno) return res.status(404).json({ error: "Turno no encontrado" });
+        const turno = req.turno; 
 
         if (turno.estado !== "confirmado") {
             return res.status(400).json({ error: "Solo se pueden marcar ausentes turnos confirmados" });
